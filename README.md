@@ -19,7 +19,8 @@ If you have a files in a structure like this: <br/>
  ```
 
 and file 'app.module.ts' contains imports such as :
-```import { Service1 } from '/services/service1.service';
+```typescript
+import { Service1 } from '/services/service1.service';
 import { TestComponent } from '/testcomponent/test.component';
 ```
 
@@ -46,4 +47,4 @@ This process prefers to use a batch-oriented style, because several files could 
 
 ### TypescriptImportSync is lightweight
 
-This process will scan each of the .ts files within the specified directory just once initially, to store ONLY the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are not stored in memory.
+This process will scan each of the .ts files within the specified directory just once initially, to store ONLY the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are *not* stored in memory.
