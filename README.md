@@ -68,3 +68,4 @@ Right click on any folder in Solution Explorer and click "Monitor Typescript" in
 
 ### Console App
 Either start the app with the path as the sole unnamed argument, or type in a path at the initial prompt to begin watching. Press c and enter to exit the app.
+
