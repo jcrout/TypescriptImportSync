@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.15
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypescriptImportSync", "TypescriptImportSync\TypescriptImportSync.csproj", "{2C9690FC-5364-4E7E-AD51-DDA0B1805E19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypescriptImportSync.ConsoleApp", "TypescriptImportSync.ConsoleApp\TypescriptImportSync.ConsoleApp.csproj", "{65251533-3288-4051-A916-DA3908FF7165}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypescriptImportSync.VSExtension", "TypescriptImportSync.VSExtension\TypescriptImportSync.VSExtension.csproj", "{C90A2D9F-07CF-4598-B5D2-8A1EEBEFD4FA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C9690FC-5364-4E7E-AD51-DDA0B1805E19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C9690FC-5364-4E7E-AD51-DDA0B1805E19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C9690FC-5364-4E7E-AD51-DDA0B1805E19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C9690FC-5364-4E7E-AD51-DDA0B1805E19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65251533-3288-4051-A916-DA3908FF7165}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65251533-3288-4051-A916-DA3908FF7165}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65251533-3288-4051-A916-DA3908FF7165}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65251533-3288-4051-A916-DA3908FF7165}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C90A2D9F-07CF-4598-B5D2-8A1EEBEFD4FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C90A2D9F-07CF-4598-B5D2-8A1EEBEFD4FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C90A2D9F-07CF-4598-B5D2-8A1EEBEFD4FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C90A2D9F-07CF-4598-B5D2-8A1EEBEFD4FA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
