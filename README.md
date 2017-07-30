@@ -24,7 +24,7 @@ import { Service1 } from '/services/service1.service';
 import { TestComponent } from '/testcomponent/test.component';
 ```
 
-If you move the 'app.module.ts' file to '/src/app/modules/app.module.ts', you've now got a problem: your relative imports are incorrect. To resolve this, you would need to change each import to:<br/>
+If you move the 'app.module.ts' file to `'/src/app/modules/app.module.ts'`, you've now got a problem: your relative imports are incorrect. To resolve this, you would need to change each import to:<br/>
 ```typescript
 import { Service1 } from '../services/service1.service';
 import { TestComponent } from '../testcomponent/test.component';
@@ -47,6 +47,8 @@ This process prefers to use a batch-oriented style, because several files could 
 
 ### TypescriptImportSync is lightweight
 
-This process will scan each of the .ts files within the specified directory just once initially, to store ONLY the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are *not* stored in memory.
+This process will scan each of the .ts files within the specified directory just once initially, to store *only* the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are *not* stored in memory.
 
 ### Bonus - Exported items are easier to work with
+
+Back to the earlier example, in `service1.service.ts`typescript there is a class called `Service1`typescript
