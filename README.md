@@ -60,3 +60,11 @@ then this process will attempt to find a file that has Service1 as an export. If
 import { Service1 } from '../services/service1.service';
 ```
 If it can't find a potential matching file, then it just won't do anything.
+
+### How to use
+
+#### Visual Studio Extension
+Right click on any folder in Solution Explorer and click "Monitor Typescript" in the context menu. Click "Stop Monitoring Typescript" to stop and dispose the watcher.
+
+#### Console App
+Either start the app with the path as the sole unnamed argument, or type in a path at the initial prompt to begin watching. Press c and enter to exit the app.
