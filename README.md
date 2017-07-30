@@ -49,6 +49,14 @@ This process prefers to use a batch-oriented style, because several files could 
 
 This process will scan each of the .ts files within the specified directory just once initially, to store *only* the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are *not* stored in memory.
 
-### Bonus - Exported items are easier to work with
+### Bonus - Autocompletion of new relative imports
 
-Back to the earlier example, in `service1.service.ts`typescript there is a class called `Service1`typescript
+Back to the earlier example, in `service1.service.ts` there is an exported class called `Service1`. If you're creating a new file that references this class, you'll have to create a new import statement and determine the relative path yourself. But if you simply write:
+```typescript
+import { Service1 }
+```
+then this process will attempt to find a file that has Service1 as an export. If one is found, it can finish that line for you like:
+```typescript
+import { Service1 } from '../services/service1.service';
+```
+If it can't find a potential matching file, then it just won't do anything.
