@@ -35,13 +35,8 @@ namespace TypescriptImportSync
             this.Dispose();
         }
 
-        private int raiseCount = 0;
         private void _FileSystemChanged(TSFileWatcherChangeTypes type, string oldPath, string newPath)
         {
-            // temp
-            raiseCount++;
-            Console.WriteLine("Raised: " + raiseCount.ToString());
-
             FileSystemChanged?.Invoke(this, new FileSystemChangedArgs(type, oldPath, newPath));
         }
 
