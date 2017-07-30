@@ -48,3 +48,5 @@ This process prefers to use a batch-oriented style, because several files could 
 ### TypescriptImportSync is lightweight
 
 This process will scan each of the .ts files within the specified directory just once initially, to store ONLY the relative import lines and the exported objects. These are maintained in memory and are automatically updated whenever files change. Entire file contents are *not* stored in memory.
+
+### Bonus - Exported items are easier to work with
