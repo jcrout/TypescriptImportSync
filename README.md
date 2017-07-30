@@ -39,8 +39,8 @@ What we need is a way to automatically have those relative imports updated when 
 When this process is running, either via command line, VS Extension, or by some other means, this process will be taken care of for you. 
 When files or folders are moved or renamed, the following happens:
 1. Each moved file has its own relative imports examined
-⋅⋅1. If a new/correct relative path can be determined, the path portion of the import line will be updated
-⋅⋅⋅⋅1. This means that the style and spacing you have applied to the import line will still be preserved
+    1. If a new/correct relative path can be determined, the path portion of the import line will be updated
+        1. This means that the style and spacing you have applied to the import line will still be preserved
 2. Every file that references the changed files will also be updated in a similar manner if necessary
 
 This process prefers to use a batch-oriented style, because several files could be updated at once (such as when cutting/pasting many files or a whole directory full of files), and this can lead to race conditions when examining and updating files that could be modified during the process.
