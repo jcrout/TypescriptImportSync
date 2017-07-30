@@ -58,11 +58,15 @@
     <Compile Include="FileContentManagerBase.cs" />
     <Compile Include="FileContentManagerMock.cs" />
     <Compile Include="FileExport.cs" />
+    <Compile Include="FileSystemNodeFactoryIO.cs" />
+    <Compile Include="FileSystemNodeIO.cs" />
     <Compile Include="FileSystemWatcherIO.cs" />
     <Compile Include="FileSystemWatcherMock.cs" />
     <Compile Include="FileWatcherFactory.cs" />
     <Compile Include="FileWatcherMockFactory.cs" />
     <Compile Include="IFileContentManager.cs" />
+    <Compile Include="IFileSystemNode.cs" />
+    <Compile Include="IFileSystemNodeFactory.cs" />
     <Compile Include="IFileWatcher.cs" />
     <Compile Include="IFileWatcherFactory.cs" />
     <Compile Include="ILogger.cs" />

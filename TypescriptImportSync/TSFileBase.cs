@@ -27,6 +27,7 @@ namespace TypescriptImportSync
                           .Concat(Regex.Matches(text, importPattern2).Cast<Match>())
                           .Where(m => m.Groups.Count == 2)
                           .Select(m => ProcessTSImport(m.Groups[1]))
+                          .OrderBy(m => m.StartIndex)
                           .ToList();
 
              return matches;

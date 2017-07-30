@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,6 +11,8 @@ namespace TypescriptImportSync
 {
     internal class TSObserverUnit : IDisposable
     {
+        private static readonly char[] filePathSplit = new[] { '\\' };
+
         public event EventHandler BatchUpdateBegin;
         public event EventHandler BatchUpdateEnd;
         public string Path { get; }
@@ -20,6 +21,7 @@ namespace TypescriptImportSync
         private BlockingCollection<FileSystemChangedArgs> changeQueue = new BlockingCollection<FileSystemChangedArgs>();
         private List<FileSystemChangedArgs> batchQueue = new List<FileSystemChangedArgs>();
         private Dictionary<string, ITSFile> files = new Dictionary<string, ITSFile>();
+
         private List<ITSFile> selfChangedFiles = new List<ITSFile>();
         private ITSFileFactory tsFileFactory;
         private IFileWatcher watcher;
@@ -44,11 +46,11 @@ namespace TypescriptImportSync
             this.fileContentManager = config.FileContentManager;
             this.MinimumBatchDelay = config.BatchDelay;
             this.cancelToken = new CancellationTokenSource();
-            this.watcher.FileChanged += Watcher_FileChanged;
+            this.watcher.FileSystemChanged += Watcher_FileChanged;
             this.watcher.WatchDirectory(path);
             this.monitorTask = Task.Run(() => MonitorChanges(), cancelToken.Token);
 
-            BuildFileList(new DirectoryInfo(path));
+            BuildFileList(this.fileContentManager.GetFileNode(path));
 
             lock (this.changeQueue)
             {
@@ -133,91 +135,145 @@ namespace TypescriptImportSync
                 // get rid of FileSystemWatcher issue where some events trigger twice
                 var uniqueChanges = changes.GroupBy(c => new { c.ChangeType, c.NewName, c.OldName }).Select(c => new FileSystemChangedArgs(c.Key.ChangeType, c.Key.OldName, c.Key.NewName));
                 var filesToUpdate = new List<ITSFile>();
+                var directoriesCreated = new List<string>();
                 foreach (var fileChange in uniqueChanges)
                 {
-                    if (fileChange.ChangeType == TSFileWatcherChangeTypes.FileChanged)
+                    switch (fileChange.ChangeType)
                     {
-                        var existingFile = this.files.FirstOrDefault(f => f.Key == fileChange.NewName);
-                        if (existingFile.Value != null)
-                        {
-                            if (this.selfChangedFiles.Contains(existingFile.Value))
+                        case TSFileWatcherChangeTypes.FileChanged:
+
+                            var existingFile = this.files.FirstOrDefault(f => f.Key == fileChange.NewName);
+                            if (existingFile.Value != null)
                             {
-                                this.selfChangedFiles.Remove(existingFile.Value);
+                                if (this.selfChangedFiles.Contains(existingFile.Value))
+                                {
+                                    this.selfChangedFiles.Remove(existingFile.Value);
+                                }
+                                else if (!filesToUpdate.Contains(existingFile.Value))
+                                {
+                                    existingFile.Value.ScanContents();
+                                    filesToUpdate.Add(existingFile.Value);
+                                }
                             }
-                            else if (!filesToUpdate.Contains(existingFile.Value))
-                            { 
-                                existingFile.Value.ScanContents();
-                                filesToUpdate.Add(existingFile.Value);
-                            }
-                        }
-                    }
-                    else if (fileChange.ChangeType == TSFileWatcherChangeTypes.FileDeleted)
-                    {
-                        try
-                        {
-                            this.files.Remove(fileChange.NewName);
-                        }
-                        catch { } // ignore cases where the file wasn't actually found, not important                        
-                    }
-                    else if (fileChange.ChangeType == TSFileWatcherChangeTypes.FileCreated)
-                    {
-                        var file = this.tsFileFactory.Create(fileChange.NewName);
-                        file.ScanContents();
-                        filesToUpdate.Add(file);
+                            break;
 
-                        var lastSlashIndex = file.Path.LastIndexOf('\\');
-                        var fName = file.Path.Substring(lastSlashIndex);
-                        var match = this.files.Keys.FirstOrDefault(k => k.EndsWith(fName));
-                        if (match != null)
-                        {
-                            if (!this.fileContentManager.FileExists(files[match].Path))
+                        case TSFileWatcherChangeTypes.FileDeleted:
+
+                            try
                             {
-                                this.files.Remove(match);
+                                this.files.Remove(fileChange.NewName);
+                            }
+                            catch { } // ignore cases where the file wasn't actually found, not important                        
+                            break;
+                        case TSFileWatcherChangeTypes.FileCreated:
+
+                            var file = this.tsFileFactory.Create(fileChange.NewName);
+                            file.ScanContents();
+                            filesToUpdate.Add(file);
+
+                            var lastSlashIndex = file.Path.LastIndexOf('\\');
+                            var fName = file.Path.Substring(lastSlashIndex);
+                            var match = this.files.Keys.FirstOrDefault(k => k.EndsWith(fName));
+                            if (match != null)
+                            {
+                                if (!this.fileContentManager.FileExists(files[match].Path))
+                                {
+                                    this.files.Remove(match);
+                                }
+                            }
+
+                            if (this.files.ContainsKey(fileChange.NewName))
+                            {
+                                this.files[fileChange.NewName] = file;
+                            }
+                            else
+                            {
+                                this.files.Add(fileChange.NewName, file);
+                            }
+                            break;
+                        case TSFileWatcherChangeTypes.FileRenamed:
+
+                            if (!String.IsNullOrEmpty(fileChange.OldName) && fileChange.OldName.EndsWith(".ts") && this.files.ContainsKey(fileChange.OldName))
+                            {
+                                this.files.Remove(fileChange.OldName);
+                            }
+
+                            var newFile = this.tsFileFactory.Create(fileChange.NewName);
+                            newFile.ScanContents();
+                            filesToUpdate.Add(newFile);
+
+                            this.files.Add(fileChange.NewName, newFile);
+                            break;
+                        case TSFileWatcherChangeTypes.DirectoryRenamed:
+
+                            var affectedFiles = this.files.Values.Where(f => f.Path.StartsWith(fileChange.OldName)).ToArray();
+                            foreach (var affectedFile in affectedFiles)
+                            {
+                                var newPath = fileChange.NewName + affectedFile.Path.Substring(fileChange.OldName.Length);
+                                this.files.Remove(affectedFile.Path);
+                                this.files.Add(newPath, affectedFile);
+
+                                affectedFile.Path = newPath;
+                                filesToUpdate.Add(affectedFile);
+                            }
+                            break;
+                        case TSFileWatcherChangeTypes.DirectoryDeleted:
+
+                            var affectedFilesFromDelete = this.files.Values.Where(f => f.Path.StartsWith(fileChange.NewName)).ToArray();
+                            foreach (var affectedFile in affectedFilesFromDelete)
+                            {
+                                this.files.Remove(affectedFile.Path);
+                            }
+                            break;
+                        case TSFileWatcherChangeTypes.DirectoryCreated:
+                            directoriesCreated.Add(fileChange.NewName);
+                            break;
+                    }
+                }
+
+                if (directoriesCreated.Count > 0)
+                {
+                    var tempDeletedFiles = new List<ITSFile>();
+                    foreach (var createdDirectory in directoriesCreated)
+                    {
+                        var segments = createdDirectory.Split(filePathSplit);
+                        var directoryName = '\\' + segments.Last();
+                        var potentiallyAffectedFiles = this.files.Where(f => f.Value.Path.Contains(directoryName));
+
+                        foreach (var potentiallyAffectedFile in potentiallyAffectedFiles)
+                        {
+                            var fileNode = this.fileContentManager.GetFileNode(potentiallyAffectedFile.Key);
+                            if (!fileNode.Exists)
+                            {
+                                tempDeletedFiles.Add(potentiallyAffectedFile.Value);
                             }
                         }
 
-                        if (this.files.ContainsKey(fileChange.NewName))
+                        var directoryNode = this.fileContentManager.GetFileNode(createdDirectory);
+                        for (var i = tempDeletedFiles.Count - 1; i >= 0; i--)
                         {
-                            this.files[fileChange.NewName] = file;
-                        }
-                        else
-                        {
-                            this.files.Add(fileChange.NewName, file);
+                            var tempDeletedFile = tempDeletedFiles[i];
+                            var potentialNewNode = this.GetNewFileNode(tempDeletedFile.Path, createdDirectory, directoryName);
+                            if (potentialNewNode != null)
+                            {
+                                var oldPath = tempDeletedFile.Path;
+                                try
+                                {
+                                    files.Add(potentialNewNode.Path, tempDeletedFile);
+                                    tempDeletedFile.Path = potentialNewNode.Path;
+                                    filesToUpdate.Add(tempDeletedFile);
+
+                                    tempDeletedFiles.RemoveAt(i);
+                                    files.Remove(oldPath);
+                                }
+                                catch { } // ignore if this file has already been updated from another                         
+                            }                        
                         }
                     }
-                    else if (fileChange.ChangeType == TSFileWatcherChangeTypes.FileRenamed)
-                    {
-                        if (!String.IsNullOrEmpty(fileChange.OldName) && fileChange.OldName.EndsWith(".ts") && this.files.ContainsKey(fileChange.OldName))
-                        {
-                            this.files.Remove(fileChange.OldName);
-                        }
 
-                        var newFile = this.tsFileFactory.Create(fileChange.NewName);
-                        newFile.ScanContents();
-                        filesToUpdate.Add(newFile);
-
-                        this.files.Add(fileChange.NewName, newFile);
-                    }
-                    else if (fileChange.ChangeType == TSFileWatcherChangeTypes.DirectoryRenamed)
+                    foreach (var deletedFileNotFoundElsewhere in tempDeletedFiles)
                     {
-                        var affectedFiles = this.files.Values.Where(f => f.Path.StartsWith(fileChange.OldName)).ToArray();
-                        foreach (var affectedFile in affectedFiles)
-                        {
-                            var newPath = fileChange.NewName + affectedFile.Path.Substring(fileChange.OldName.Length);
-                            this.files.Remove(affectedFile.Path);
-                            this.files.Add(newPath, affectedFile);
-
-                            affectedFile.Path = newPath;
-                            filesToUpdate.Add(affectedFile);
-                        }
-                    }
-                    else if (fileChange.ChangeType == TSFileWatcherChangeTypes.DirectoryDeleted)
-                    {
-                        var affectedFiles = this.files.Values.Where(f => f.Path.StartsWith(fileChange.NewName)).ToArray();
-                        foreach (var affectedFile in affectedFiles)
-                        {
-                            this.files.Remove(affectedFile.Path);
-                        }
+                        files.Remove(deletedFileNotFoundElsewhere.Path);
                     }
                 }
 
@@ -232,6 +288,33 @@ namespace TypescriptImportSync
                     }
 
                     this.RaiseBatchUpdateEnd();
+                }
+            }
+        }
+
+        private IFileSystemNode GetNewFileNode(string path, string newPath, string directoryPath)
+        {
+            var pIndex = 0;
+            while (true)
+            {
+                var idx = path.IndexOf(directoryPath, pIndex);
+                if (idx == -1)
+                {
+                    return null;
+                }
+                else
+                {
+                    var endIndex = idx + directoryPath.Length;
+                    var newPart = path.Substring(endIndex);
+                    var aNewPath = newPath + newPart;
+                    var node = this.fileContentManager.GetFileNode(aNewPath);
+
+                    if (node.Exists && !this.files.ContainsKey(aNewPath))
+                    {
+                        return node;
+                    }
+
+                    pIndex = endIndex;
                 }
             }
         }
@@ -333,8 +416,8 @@ namespace TypescriptImportSync
 
                     if (existingMatches.Count > 1)
                     {
-                        var latestFile = existingMatches.Select(e => new FileInfo(e.Key)).Where(e => e.Exists).OrderByDescending(e => e.CreationTime).First();
-                        existingMatch = existingMatches.First(m => m.Key == latestFile.FullName);
+                        var latestFile = existingMatches.Select(e => this.fileContentManager.GetFileNode(e.Key)).Where(e => e.Exists).OrderByDescending(e => e.CreationTime).First();
+                        existingMatch = existingMatches.First(m => m.Key == latestFile.Path);
                     }
                     else if (existingMatches.Count == 0)
                     {
@@ -500,8 +583,8 @@ namespace TypescriptImportSync
 
         private string GetRelativePathTo(string from, string to)
         {
-            var fileInfoFrom = new FileInfo(from);
-            var fileInfoTo = new FileInfo(to);
+            var fileInfoFrom = this.fileContentManager.GetFileNode(from);
+            var fileInfoTo = this.fileContentManager.GetFileNode(to);
 
             var fileSegmentsFrom = GetPathSegments(fileInfoFrom);
             var fileSegmentsTo = GetPathSegments(fileInfoTo);
@@ -529,7 +612,8 @@ namespace TypescriptImportSync
                         partBase = null;
                     }
 
-                    var partName = (!String.IsNullOrEmpty(partBase) ? partBase + "/" : "") + fileInfoTo.Name.Substring(0, fileInfoTo.Name.Length - 3);
+                    var fName = fileInfoTo.Path.Substring(fileInfoTo.Path.LastIndexOf('\\') + 1);
+                    var partName = (!String.IsNullOrEmpty(partBase) ? partBase + "/" : "") + fName.Substring(0, fName.Length - 3);
                     builder.Append(partName);
                     break;
                 }
@@ -556,28 +640,21 @@ namespace TypescriptImportSync
             return -1;
         }
 
-        private List<string> GetPathSegments(FileInfo file)
+        private List<string> GetPathSegments(IFileSystemNode file)
         {
-            var lst = new List<string>(8);
-            var dir = file.Directory;
-            while (dir != null)
-            {
-                lst.Add(dir.Name);
-                dir = dir.Parent;
-            }
-            lst.Reverse();
-            return lst;
+            var segments = file.Path.Split(filePathSplit);
+            return segments.Take(segments.Length - 1).ToList();
         }
 
-        private void BuildFileList(DirectoryInfo sDir)
+        private void BuildFileList(IFileSystemNode sDir)
         {
             try
             {
                 foreach (var f in sDir.GetFiles("*.ts"))
                 {
-                    var tsFile = this.tsFileFactory.Create(f.FullName);
+                    var tsFile = this.tsFileFactory.Create(f.Path);
                     tsFile.ScanContents();
-                    this.files.Add(f.FullName, tsFile);
+                    this.files.Add(f.Path, tsFile);
                 }
 
                 foreach (var d in sDir.GetDirectories())

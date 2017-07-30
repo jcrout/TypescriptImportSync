@@ -8,7 +8,7 @@ namespace TypescriptImportSync
 {
     public class Configuration
     {
-        private static IFileContentManager defaultFileContentManager = new FileContentManager();
+        private static IFileContentManager defaultFileContentManager = new FileContentManager(new FileSystemNodeFactoryIO());
         private static IFileWatcherFactory defaultFileWatcherFactory = new FileWatcherFactory();
         private static ITSFileFactory defaultTsFileFactory = new TSFileIOFactory();
         private static ILogger defaultLogger = new ConsoleLogger();

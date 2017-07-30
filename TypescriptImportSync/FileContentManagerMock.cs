@@ -1,12 +1,47 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace TypescriptImportSync
 {
+    public class FileNodeMock : IFileSystemNode
+    {
+        public FileNodeMock(string path)
+        {
+            this.Path = path;
+        }
+
+        public string Path { get; }
+
+        public bool IsFile => throw new NotImplementedException();
+
+        public bool Exists => throw new NotImplementedException();
+
+        public DateTime CreationTime => throw new NotImplementedException();
+
+        public IEnumerable<IFileSystemNode> GetDirectories()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IFileSystemNode> GetFiles(string pattern = null)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class FileNodeFactoryMock : IFileSystemNodeFactory
+    {
+        public IFileSystemNode GetFileNode(string path)
+        {
+            return new FileNodeMock(path);
+        }
+    }
+
     public class FileContentManagerMock : FileContentManagerBase
     {
         private Dictionary<string, string> fakeFileSystem;
 
-        public FileContentManagerMock()
+        public FileContentManagerMock(IFileSystemNodeFactory nodeFactory) : base(nodeFactory)
         {
             this.fakeFileSystem = new Dictionary<string, string>();
         }

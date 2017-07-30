@@ -6,19 +6,17 @@ namespace TypescriptImportSync
     {
         public static event EventHandler Created;
 
-        public event EventHandler<FileSystemChangedArgs> FileChanged;
+        public event EventHandler<FileSystemChangedArgs> FileSystemChanged;
+        public event EventHandler Disposing;
 
         public FileSystemWatcherMock()
         {
-            var createdEvent = Created;
-            if (createdEvent != null)
-            {
-                createdEvent.Invoke(this, EventArgs.Empty);
-            }
+            Created?.Invoke(this, EventArgs.Empty);
         }
 
         public void Dispose()
         {
+            Disposing?.Invoke(this, EventArgs.Empty);
         }
 
         public void WatchDirectory(string path)
@@ -27,7 +25,7 @@ namespace TypescriptImportSync
 
         public void Raise(FileSystemChangedArgs args)
         {
-            var ev = this.FileChanged;
+            var ev = this.FileSystemChanged;
             if (ev != null)
             {
                 ev.Invoke(this, args);

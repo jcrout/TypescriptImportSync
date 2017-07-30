@@ -4,8 +4,10 @@ namespace TypescriptImportSync
 {
     public interface IFileWatcher : IDisposable
     {
-        void WatchDirectory(string path);
+        event EventHandler Disposing;
 
-        event EventHandler<FileSystemChangedArgs> FileChanged;
+        event EventHandler<FileSystemChangedArgs> FileSystemChanged;
+
+        void WatchDirectory(string path);
     }
 }

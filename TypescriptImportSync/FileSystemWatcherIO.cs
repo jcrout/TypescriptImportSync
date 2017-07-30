@@ -7,8 +7,9 @@ namespace TypescriptImportSync
     {
         private static readonly char[] trimChars = new char[] { '\\' };
         private FileSystemWatcher watcher;
-
-        public event EventHandler<FileSystemChangedArgs> FileChanged;
+      
+        public event EventHandler<FileSystemChangedArgs> FileSystemChanged;
+        public event EventHandler Disposing;
 
         public void WatchDirectory(string path)
         {
@@ -19,6 +20,7 @@ namespace TypescriptImportSync
             }
 
             this.watcher = new FileSystemWatcher(path);
+            watcher.Error += Watcher_Error;
             watcher.Deleted += Fsw_Deleted;
             watcher.Created += Fsw_Created;
             watcher.Renamed += Fsw_Renamed;
@@ -28,14 +30,19 @@ namespace TypescriptImportSync
             watcher.IncludeSubdirectories = true;
         }
 
-        private void FileSystemChanged(EventHandler<FileSystemChangedArgs> ev, TSFileWatcherChangeTypes type, string oldPath, string newPath)
-        {
-            if (ev == null)
-            {
-                return;
-            }
+        private void Watcher_Error(object sender, ErrorEventArgs e)
+        {           
+            this.Dispose();
+        }
 
-            ev.Invoke(this, new FileSystemChangedArgs(type, oldPath, newPath));
+        private int raiseCount = 0;
+        private void _FileSystemChanged(TSFileWatcherChangeTypes type, string oldPath, string newPath)
+        {
+            // temp
+            raiseCount++;
+            Console.WriteLine("Raised: " + raiseCount.ToString());
+
+            FileSystemChanged?.Invoke(this, new FileSystemChangedArgs(type, oldPath, newPath));
         }
 
         private bool IsTsChange(string path)
@@ -47,11 +54,11 @@ namespace TypescriptImportSync
         {
             if (IsTsChange(e.FullPath))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.FileRenamed, e.OldFullPath, e.FullPath);
+                _FileSystemChanged(TSFileWatcherChangeTypes.FileRenamed, e.OldFullPath, e.FullPath);
             }
             else if (Directory.Exists(e.FullPath))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.DirectoryRenamed, e.OldFullPath?.TrimEnd(trimChars), e.FullPath.TrimEnd(trimChars));
+                _FileSystemChanged(TSFileWatcherChangeTypes.DirectoryRenamed, e.OldFullPath?.TrimEnd(trimChars), e.FullPath.TrimEnd(trimChars));
             }
         }
 
@@ -59,11 +66,11 @@ namespace TypescriptImportSync
         {
             if (e.FullPath.ToLower().EndsWith(".ts"))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.FileDeleted, null, e.FullPath);
+                _FileSystemChanged(TSFileWatcherChangeTypes.FileDeleted, null, e.FullPath);
             }
             else if (Directory.Exists(e.FullPath))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.DirectoryDeleted, null, e.FullPath.TrimEnd(trimChars));
+                _FileSystemChanged(TSFileWatcherChangeTypes.DirectoryDeleted, null, e.FullPath.TrimEnd(trimChars));
             }
         }
 
@@ -71,7 +78,7 @@ namespace TypescriptImportSync
         {
             if (IsTsChange(e.FullPath))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.FileChanged, null, e.FullPath);
+                _FileSystemChanged(TSFileWatcherChangeTypes.FileChanged, null, e.FullPath);
             }
         }
 
@@ -79,7 +86,11 @@ namespace TypescriptImportSync
         {
             if (IsTsChange(e.FullPath))
             {
-                FileSystemChanged(this.FileChanged, TSFileWatcherChangeTypes.FileCreated, null, e.FullPath);
+                _FileSystemChanged(TSFileWatcherChangeTypes.FileCreated, null, e.FullPath);
+            }
+            else if (Directory.Exists(e.FullPath))
+            {
+                _FileSystemChanged(TSFileWatcherChangeTypes.DirectoryCreated, null, e.FullPath);
             }
         }
 
@@ -88,8 +99,10 @@ namespace TypescriptImportSync
             if (this.watcher != null)
             {
                 this.watcher.Dispose();
-                this.watcher = null;
+                this.watcher = null;                
             }
+
+            Disposing?.Invoke(this, EventArgs.Empty);
         }
     }
 }

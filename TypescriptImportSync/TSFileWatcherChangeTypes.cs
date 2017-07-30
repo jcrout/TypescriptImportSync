@@ -35,6 +35,10 @@ namespace TypescriptImportSync
         //
         // Summary:
         //     The deletion of a directory
-        DirectoryDeleted = 32
+        DirectoryDeleted = 32,
+        //
+        // Summary:
+        //     The creation of a directory
+        DirectoryCreated = 64
     }
 }
