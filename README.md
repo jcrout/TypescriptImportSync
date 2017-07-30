@@ -13,9 +13,9 @@ Three projects are included in this repository:
 ### The problem we're trying to solve
 
 If you have a files in a structure like this: <br/>
- /src/app/app.module.ts <br/>
- /src/app/services/service1.service.ts <br/>
- /src/app/components/testcomponent/test.component.ts <br/>
+ <p>/src/app/app.module.ts </p>
+ <p>/src/app/services/service1.service.ts </p>
+ <p>/src/app/components/testcomponent/test.component.ts </p>
 
 and file 'app.module.ts' contains imports such as :
 import { Service1 } from '/services/service1.service'; <br/>
